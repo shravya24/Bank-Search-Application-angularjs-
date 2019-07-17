@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+   <head>
+      <style>
+        .table {
+           font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+           border-collapse: collapse;
+           width: 100%;
+           margin-top: 20px;
+         }
+
+             .td {
+              border: 1px solid #ddd;
+              padding: 8px;
+            }
+            .th {
+               border: 1px solid #ddd;
+              padding: 8px;
+              padding-top: 12px;
+              padding-bottom: 12px;
+              text-align: left;
+              background-color: #4CAF50;
+              color: white;
+              }
+              .my-controller {
+                  border: 1px solid #fcc;
+                  padding: 5px;
+                  margin: 3px;
+                }
+                .my-controller small {
+                  color: #c99;
+                }
+                .other-controller {
+                  border: 1px solid #ccf;
+                  padding: 5px;
+                  margin: 3px;
+                }
+                .other-controller small {
+                  color: #99c;
+                }
+                input {
+                  padding: 12px 20px;
+                  margin: 8px 0;
+                  box-sizing: border-box;
+                  border: 2px solid green;
+                  border-radius: 4px;
+                  }
+                  select {
+                  padding: 12px 20px;
+                  margin: 8px 0;
+                  box-sizing: border-box;
+                  border: 2px solid green;
+                  border-radius: 4px;
+                  }
+                  .button {
+                      background-color: LightSeaGreen ;
+                      border: none;
+                      color: white;
+                      padding: 15px 25px;
+                      text-align: center;
+                      text-decoration: none;
+                      display: inline-block;
+                      font-size: 16px;
+                      position: absolute;
+                      margin-left:90px;
+                      margin-top:200px;
+                      cursor: pointer;
+                    }
+          </style>        
+      <script src = "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.2/angular.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/ngStorage/0.3.11/ngStorage.min.js"></script>
+
+      <script  src= "dirPagination.js"></script>
+       <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+       <link rel="stylesheet" type="text/css" href="bootstrap-theme.min.css">  
+     </head>
+   
+   <body>
+   <p style="margin-left: 500px;"><b>Page Size:</b></p> 
+      <div ng-app = "myapp" ng-controller = "AppCtrl" >
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <select ng-model="option_name" ng-change="selectedOption(option_name)">
+           <option value="">--Select City--</option>
+           <option ng-repeat="c in cities">{{ c }}</option>
+           
+           
+        </select>
+         &nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+         <input type ="text" placeholder="Search here..." ng-model="banks">
+         &nbsp; &nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="number" min="1" max="1000" ng-model="pageSize">
+      <table class="table">
+         <tr>
+            <th class="th">INDEX</th>
+            <th class="th">IFSC</th>
+            <th class="th">BANK ID</th>
+            <th class="th">BRANCH</th>
+            <th class="th">ADDRESS</th>
+            <th class="th">CITY</th>
+            <th class="th">DISTRICT</th>
+             <th class="th">STATE</th>
+             <th class="th">BANK NAME</th>
+         </tr>   
+       <tr dir-paginate="user in names | filter:banks| itemsPerPage:pageSize" >
+          <td class="td" >{{ $index+1 }}</td>
+          <td class="td"> {{ user.ifsc }} </td>
+          <td class="td"> {{ user.bank_id }} </td>
+            <td class="td"> {{ user.branch }} </td>
+             <td class="td"> {{ user.address }} </td>
+          <td class="td"> {{ user.city }} </td>
+          <td class="td"> {{ user.district }} </td>
+           <td class="td"> {{ user.state }} </td>
+            <td class="td" > {{ user.bank_name }} </td>
+            <td><button type="button" ng-click="favouriteThis(user)">Add To Favourites</button></td>
+
+       </tr>
+      </table>
+      <dir-pagination-controls style= " display: inline-block;position: absolute;margin-left:10px;margin-top:15px; border: 3px solid #ccc; float:left;"
+        max-size="pageSize"
+        direction-links="true"
+        boundary-links="true" 
+        >
+    </dir-pagination-controls>
+    <button class="button" type="button" ng-click="viewFavorites()" >View Favourites</button>
+    <div ng-show="isVisible" style="position: absolute;margin-left:150px;margin-top: 260px;margin-bottom: 10px">
+    <table  class="table">
+      <tr>
+       <th class="th">INDEX</th>
+     
+      <th class="th">BANK NAME</th>
+      <th class="th">BRANCH</th>
+    </tr>
+      <tr ng-repeat="x in retrievedObjects track by $index">
+         <td class="td">{{ $index+1 }}</td>
+       <td class="td"> {{ x.bank_name}}</td>
+       <td class="td">{{ x.branch }}</td>
+     </tr>
+    </table>   
+      </li>
+     </ul> 
+    </div>
+    </div>
+    
+ <script>
+ var app = angular.module("myapp",['angularUtils.directives.dirPagination','ngStorage']).config(['$httpProvider', function ($httpProvider) {
+            // enable http caching
+           $httpProvider.defaults.cache = true;
+      }]);
+ 
+
+ app.service('Selectoption', ['$http', '$rootScope', function($http, $rootScope) {
+
+  return {
+    query: function(option) {
+      return $http.get("https://vast-shore-74260.herokuapp.com/banks?city=" + option, {
+
+      });
+    }
+  };
+}]);
+
+
+ app.controller('AppCtrl',  ['$rootScope', '$scope', '$http', 'Selectoption',"$window","$localStorage", function($rootScope, $scope, $http, Selectoption,$window,$localStorage) {    
+        $scope.isVisible = false;
+         $scope.favouriteList = [];
+         $scope.favBanks =[];
+         $scope.values =[];
+         $scope.retrievedObject=[];
+ $scope.selectedOption = function(option) {
+    Selectoption.query(option).then(function(response) {
+      console.log("testing response: " + response);
+    
+    $scope.names = response.data; 
+    $scope.pageSize=20;  
+ 
+
+     }, function(error) {
+      console.log(error);
+      console.log("could not lget data due to error...");
+    });
+  };
+   
+ 
+       
+           $scope.cities =["MUMBAI","BANGALORE","CHENNAI","PUNE","HYDERABAD"];
+          
+           $scope.favouriteThis = function (item) {
+
+            $scope.favouriteList = JSON.parse(localStorage.getItem('favouriteList')) || [];
+            $scope.favouriteList.push(item);
+            console.log('item added',item);
+            console.log($scope.favouriteList); 
+            localStorage.setItem('favouriteList', JSON.stringify($scope.favouriteList));
+            
+
+        }
+        
+        
+      $scope.viewFavorites = function(){
+        if($scope.isVisible == false)
+           $scope.isVisible = true;
+
+        else if($scope.isVisible == true)
+            $scope.isVisible = false;
+       
+        console.log('item viewd');
+        console.log("fav",$scope.favouriteList);
+        
+        $scope.retrievedObjects = JSON.parse(localStorage.getItem('favouriteList'));
+        console.log('retrievedObject: ', $scope.retrievedObjects);
+
+      }
+      
+      
+        
+}]);
+ </script>        
+   </body>
+</html>
+
+  
